@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>
+Libra
+</title>
+</head>
+<body>
+
+<table id="table">
+</table>
+
+<ul>
+    <li><a href="https://www.inf.uni-hamburg.de/studies/bachelor/inf.html">Universität Hamburg</a></li>
+    <li><a href="https://www.haw-hamburg.de/studiengaenge/studierende/stg-ti/stg-i/ba-angewandte-informatik">Hochschule für Angewandte Wissenschaften</a></li>
+    <li><a href="https://www.tuhh.de/tuhh/studium/vor-dem-studium/studienangebot/bachelorstudiengaenge/computer-science">Technische Universität Harburg</a></li>
+    <li><a href="https://www.fh-wedel.de/bewerben/bachelor/informatik">Fachhochschule Wedel</a></li>
+    <li><a href="https://www.nordakademie.de/studium/bachelor-dual/software-engineering">Nordakademie Elmshorn</a></li>
+</ul>
+
+</body>
+<script>
+
+const allCourses = [
+    "Analysis und Lineare Algebra",
+    "Diskrete Mathematik",
+    "Optimierung",
+    "Stochastik 1",
+    "Stochastik 2",
+    null,
+    "Algorithmen und Datenstrukturen",
+    "Berechenbarkeit, Komplexität und Approximation",
+    "Data-driven Intelligent Systems",
+    "Datenschutz in der Informationsgesellschaft",
+    "Datenvisualisierung und GPU-Computing",
+    "Digitale Mediensignalverarbeitung",
+    "Einführung in die Bildverarbeitung",
+    "Einführung in die Theoretische Informatik",
+    "Eingebettete Systeme",
+    "Ethics and IT",
+    "Grundlagen von Datenbanken",
+    "Hochleistungsrechnen",
+    "Informatik im Kontext",
+    "Interaktionsdesign",
+    "Interaktive Computergrafik",
+    "Gestaltung und Modellierung von Organisationen",
+    "Methodenkompetenz",
+    "Philosophie, Gesellschaft und IT",
+    "Projektmanagement",
+    "Rechnerstrukturen und Betriebssysteme",
+    "Softwareentwicklung 1",
+    "Softwareentwicklung 2",
+    "Softwaretechnik",
+    "Sprachdialogsysteme",
+    "Urheberrecht in der Informationsgesellschaft",
+    "Verteilte Systeme und Systemsicherheit",
+    null,
+    "Praktikum",
+    "Projekt",
+    "Proseminar",
+    "Seminar",
+    "Bachelorarbeit",
+];
+if (allCourses.length & 1) {
+    allCourses.push(null);
+}
+
+const half = allCourses.length >>> 1;
+for (let i = 0; i < half; ++i) {
+    appendRow(allCourses[i], allCourses[half + i]);
+}
+
+function appendRow(...rowCourses) {
+    const table = document.getElementById("table");
+    const tr = document.createElement("tr");
+
+    for (course of rowCourses) {
+        const td1 = document.createElement("td");
+        const td2 = document.createElement("td");
+
+        if (course) {
+            const input = document.createElement("input");
+            input.type = "range";
+            input.min = 0;
+            input.max = 5;
+            input.value = 0;
+
+            td1.appendChild(input);
+            td2.innerHTML = course;
+        }
+
+        tr.appendChild(td1);
+        tr.appendChild(td2);
+        table.appendChild(tr);
+    }
+}
+
+</script>
+</html>
