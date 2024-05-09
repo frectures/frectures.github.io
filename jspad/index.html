@@ -158,7 +158,7 @@ function formatConstructor(value) {
 
 return function log(...values) {
     console.log(...values);
-    postMessage(`${values.map(value => formatValue(value)).join(" ")}\n`);
+    postMessage(`${values.map(value => (typeof value === "string") ? value : formatValue(value)).join(" ")}\n`);
 }
 
 })();
