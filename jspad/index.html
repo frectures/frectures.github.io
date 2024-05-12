@@ -170,6 +170,14 @@ return function log(...values) {
 <script>
 "use strict";
 
+// https://github.com/ajaxorg/ace/wiki/Configuring-Ace
+const options = {
+    cursorStyle: "wide",          // disable blinking
+    copyWithEmptySelection: true, // copy current line
+    useSoftTabs: true,            // use 4 spaces instead of tab
+    navigateWithinSoftTabs: true, // move 1 space instead of 4
+};
+
 const themes = [
     "ace/theme/textmate", // default theme
     "ace/theme/monokai",
@@ -184,7 +192,7 @@ function selectNextTheme() {
 }
 
 const output = ace.edit("output");
-output.setReadOnly(true);
+output.setOptions({ readOnly: true, ...options });
 output.renderer.setShowGutter(false);
 output.session.setValue(`jspad
 powered by ace.c9.io
@@ -204,6 +212,7 @@ function append(text) {
 
 const input = ace.edit("input");
 input.focus();
+input.setOptions(options);
 input.session.setMode("ace/mode/javascript");
 const LOCAL_STORAGE_KEY = "0f060278a3d8af5327560f8c3dff6dd622d084d9";
 input.session.setValue(localStorage.getItem(LOCAL_STORAGE_KEY) ||
@@ -217,8 +226,8 @@ setTimeout(function () { throw "whoops" }, 1000);
     if (!worker) {
         setTimeout(configureAceWorker, 500);
     } else {
+        // https://jshint.com/docs/options
         worker.call("changeOptions", [{
-            // https://jshint.com/docs/options
             globals: { log: false }, // false = read-only
             undef: true,
             unused: true,
