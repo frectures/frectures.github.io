@@ -191,7 +191,7 @@ powered by ace.c9.io
 
 F5  execute selection/whole program
 F8  cycle through themes
-F9  execute selection/lines from here
+F9  execute selection/lines to here
 F12 execute selection/current line
 `);
 
@@ -240,7 +240,7 @@ document.addEventListener("keydown", function (event) {
         case "F9": event.preventDefault();
             resetEvaluator();
             output.session.setValue("");
-            executeLinesFromHere(); break;
+            executeLinesToHere(); break;
 
         case "F12": event.preventDefault(); // dev tools
             executeCurrentLine(); break;
@@ -288,15 +288,16 @@ function executeProgram() {
     evaluator.postMessage({ echo: "", program });
 }
 
-function executeLinesFromHere() {
+function executeLinesToHere() {
     const program = input.session.getValue();
     localStorage.setItem(LOCAL_STORAGE_KEY, program);
 
     const range = input.selection.getRange();
     if (range.isEmpty()) {
-        // pretend all lines from here are selected
+        // pretend all lines to here are selected
+        range.start.row = 0;
         range.start.column = 0;
-        range.end.row = Number.MAX_VALUE;
+        range.end.column = Number.MAX_VALUE;
     }
     const isolated = isolateSelectedProgram(program, range);
 
