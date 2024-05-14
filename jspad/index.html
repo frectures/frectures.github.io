@@ -61,6 +61,8 @@ function formatValue(value, indentation = "", key) {
                 return formatSet(value, indentation);
             } else if (value instanceof Map) {
                 return formatMap(value, indentation);
+            } else if (value instanceof Response) {
+                return formatResponse(value, indentation);
             } else {
                 return formatObject(value, indentation);
             }
@@ -103,6 +105,20 @@ function formatMap(map, indentation) {
         }).join(separator)}}`;
     } finally {
         pending.delete(map);
+    }
+}
+
+function formatResponse(response, indentation) {
+    pending.add(response);
+    try {
+        indentation += " ";
+        const separator = ",\n" + indentation;
+        return `{${["type", "url", "redirected", "status", "ok"].map(key => {
+            const value = response[key];
+            return `${key}: ${formatValue(value, indentation + " ".repeat(2 + key.length), key)}`;
+        }).join(separator)}}`;
+    } finally {
+        pending.delete(response);
     }
 }
 
