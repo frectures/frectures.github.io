@@ -24,7 +24,7 @@ const indirectEval = eval;
 onmessage = function ({ data: { echo, program } }) {
     postMessage(echo);
     const result = indirectEval(program);
-    postMessage(`${formatValue(result)}: ${typeof result}${formatConstructor(result)}\n`);
+    postMessage(`${formatValue(result)}: ${typeof result}${formatConstructor(result)} \uD83C\uDFC1\n`);
 };
 
 const pending = new Set(); // for preventing infinite recursion in circular structures
