@@ -223,7 +223,7 @@ function append(text) {
     const beforeAppend = output.session.getLength();
     output.selection.moveTo(beforeAppend, 0);
     output.insert(text);
-    output.scrollToRow(beforeAppend);
+    output.scrollToRow(beforeAppend - 1);
 }
 
 const input = ace.edit("input");
