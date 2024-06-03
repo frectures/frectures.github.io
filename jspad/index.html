@@ -24,7 +24,7 @@ const indirectEval = eval;
 onmessage = function ({ data: { echo, program } }) {
     postMessage(echo);
     const result = indirectEval(program);
-    postMessage(`${formatValue(result)}: ${typeof result}${formatConstructor(result)} \uD83C\uDFC1\n`);
+    postMessage(`${formatValue(result)}: ${typeof result}${classifyObject(result)} \uD83C\uDFC1\n`);
 };
 
 const pending = new Set(); // for preventing infinite recursion in circular structures
@@ -161,13 +161,17 @@ function formatSymbol(symbol) {
     }
 }
 
-function formatConstructor(value) {
+function classifyObject(value) {
     if (typeof value === "object" && value !== null) {
+        const toStringTag = value[Symbol.toStringTag];
+        if (typeof toStringTag === "string") {
+            return ` ${toStringTag}`;
+        }
         let constructor = value.constructor;
         if (typeof constructor === "function") {
             let name = constructor.name;
             if (typeof name === "string") {
-                return ` (${name})`;
+                return ` new ${name}`;
             }
         }
     }
