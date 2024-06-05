@@ -38,17 +38,7 @@ function formatValue(value, indentation = "", key) {
             return formatSymbol(value); // shorten Symbol(Symbol.iterator) to Symbol.iterator
 
         case "function":
-            const names = Object.getOwnPropertyNames(value) // remove non-strict names
-                                .filter(name => name !== "caller" && name !== "arguments");
-            if (names.length <= 3 || pending.has(value)) {
-                if (value.name === key) {
-                    return `function(${value.length})`;
-                } else {
-                    return `function ${value.name}(${value.length})`;
-                }
-            } else {
-                return formatObject(value, indentation, names);
-            }
+            return formatFunction(value, indentation, key);
 
         case "object":
             if (value === null) {
@@ -69,6 +59,35 @@ function formatValue(value, indentation = "", key) {
 
         default:
             return `${value}`;
+    }
+}
+
+function priority(name) {
+    switch (name) {
+        case "caller": // non-strict names
+        case "arguments": return 0;
+
+        case "name":      return 1;
+        case "length":    return 2;
+        default:          return 3;
+        case "prototype": return 4;
+    }
+}
+
+function formatFunction(fun, indentation, key) {
+    const groups = [[], [], [], [], []];
+    for (const name of Object.getOwnPropertyNames(fun)) {
+        groups[priority(name)].push(name);
+    }
+    if (groups[3].length === 0 || pending.has(fun)) {
+        if (fun.name === key) {
+            return `function(${fun.length})`;
+        } else {
+            return `function ${fun.name}(${fun.length})`;
+        }
+    } else {
+        const names = [...groups[1], ...groups[2], ...groups[3].sort(), ...groups[4]];
+        return formatObject(fun, indentation, names);
     }
 }
 
@@ -122,10 +141,9 @@ function formatResponse(response, indentation) {
     }
 }
 
-function formatObject(obj, indentation, names = Object.getOwnPropertyNames(obj)) {
+function formatObject(obj, indentation, names = Object.getOwnPropertyNames(obj).sort()) {
     pending.add(obj);
     try {
-        names.sort();
         const symbols = Object.getOwnPropertySymbols(obj);
         symbols.sort((a, b) => a.description.localeCompare(b.description));
         const keys = [...names, ...symbols];
