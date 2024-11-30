@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+
+<h2>for-loop Generator</h2>
+
+Declaration:
+<input type="radio" name="keyword" value="let" checked><label style="font-family: monospace">let</label>
+<input type="radio" name="keyword" value="var"        ><label style="font-family: monospace">var</label>
+<input type="radio" name="keyword" value="int"        ><label style="font-family: monospace">int</label>
+<input type="radio" name="keyword" value="auto"       ><label style="font-family: monospace">auto</label>
+
+<p></p>
+
+Desired values:
+<input id="input" type="text" value="1 3 5 7 9">
+
+<p></p>
+
+<button onclick="generateForLoops()">Generate for-loop</button>
+
+<h3 id="pick"></h3>
+
+<div id="output" style="font-family: monospace"></div>
+
+</body>
+<script>
+
+const keywords = Array.from(document.getElementsByName("keyword"));
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+
+input.focus();
+input.onkeypress = function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        generateForLoops();
+    }
+};
+
+function generateForLoops() {
+    const numbers = Array.from(input.value.matchAll(/\d+/g), Number);
+    input.value = numbers.join(" ");
+    try {
+        output.innerText = computeForLoops(numbers, keywords.find(keyword => keyword.checked).value);
+        document.getElementById("pick").innerText = "Pick your for-loop";
+    } catch (error) {
+        output.innerText = error.message;
+        document.getElementById("pick").innerText = "Error";
+    } finally {
+        input.focus();
+    }
+}
+
+function computeForLoops(numbers, keyword) {
+    if (numbers.length < 2) throw new Error("multiple numbers needed");
+
+    const deltas = computeDeltas(numbers);
+    const delta = deltas[0];
+    if (deltas.some(d => d !== delta)) throw new Error(`inconsistent deltas: ${deltas.join(" ")}`);
+
+    if (delta === 0) throw new Error("numbers must be distinct");
+
+    const first = numbers[0];
+    const last = numbers.pop();
+    const limit = last + delta;
+    const compare = delta < 0 ? ">" : "<";
+    const crement = delta < 0 ? "-" : "+";
+    const abs = Math.abs(delta);
+
+    return `for (${keyword} i = ${first}; i ${compare}= ${last}; i ${crement}= ${abs}) // closed range
+
+for (${keyword} i = ${first}; i ${compare} ${limit}; i ${crement}= ${abs}) // half-open range
+
+for (${keyword} i = ${first}; i != ${limit}; i ${crement}= ${abs}) // terminator`;
+}
+
+function computeDeltas(array) {
+    const deltas = new Array(array.length - 1);
+    for (let i = 0; i < deltas.length; ++i) {
+        deltas[i] = array[i + 1] - array[i];
+    }
+    return deltas;
+}
+
+</script>
+</html>
