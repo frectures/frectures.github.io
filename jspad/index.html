@@ -15,8 +15,7 @@
 <script type="text/js-worker">
 "use strict";
 
-// hide everything except the log function from programs written by the user
-const log = (function () {
+const log = (function immediatelyInvoked() {
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
 const indirectEval = eval;
@@ -203,6 +202,114 @@ return function log(...values) {
 
 })();
 
+
+
+Function.prototype.examples = (function immediatelyInvoked() {
+
+const pending = new Set(); // for preventing infinite recursion in circular structures
+
+function formatValue(value) {
+    switch (typeof value) {
+        case "string":
+            return JSON.stringify(value);
+
+        case "function":
+            return value.name || value.toString();
+
+        case "object":
+            if (value === null) {
+                return "null";
+            } else if (pending.has(value)) {
+                return "∞";
+            } else if (Array.isArray(value)) {
+                return formatArray(value);
+            } else {
+                return formatObject(value);
+            }
+
+        default:
+            return `${value}`;
+    }
+}
+
+function formatArray(arr) {
+    pending.add(arr);
+    try {
+        return `[${arr.map(value => formatValue(value)).join(", ")}]`;
+    } finally {
+        pending.delete(arr);
+    }
+}
+
+function formatObject(obj) {
+    pending.add(obj);
+    try {
+        return `{${Object.keys(obj).sort().map(key => `${key}: ${formatValue(obj[key], key)}`).join(", ")}}`;
+    } finally {
+        pending.delete(obj);
+    }
+}
+
+return function examples(...examples) {
+
+    const inputs   = new Set();
+    let   status   = "";
+    const failures = [];
+    let   input;
+    let   expected;
+
+    function fail(failure) {
+        status += "❌️";
+        failures.push(`   input: ${input}\nexpected: ${expected}${failure}`);
+    }
+
+    try {
+        for (let i = 0; i < examples.length; i += 2) {
+
+            input    = formatValue(examples[i]);
+            expected = formatValue(examples[i + 1]);
+
+            if (!Array.isArray(examples[i])) {
+                fail(`\n   error: input must be array but is ${typeof examples[i]}\n     fix: [${input}], ${expected},\n`);
+            }
+            else if (inputs.has(input)) {
+                fail(`\n   error: duplicate input\n     fix: remove or change ${input}, ${expected},\n`);
+            }
+            else {
+                inputs.add(input);
+
+                const actual = formatValue(this.apply(null, examples[i])); // may throw exception
+
+                if (i + 1 === examples.length) {
+                    fail(`\n   error: missing expected output\n     fix: ${input}, ${actual},\n`);
+                }
+                else if (expected === actual) {
+                    status += "✔️";
+                }
+                else {
+                    fail(`\n  actual: ${actual}\n`);
+                }
+            }
+            input = undefined;
+        }
+    } finally {
+        if (input !== undefined) {
+            fail(""); // exception thrown by: this.apply(null, examples[i])
+        }
+        else if (status === "") {
+            status = "⚠️";
+        }
+        log(`${status} ${this.name}\n`);
+        for (const failure of failures) {
+            log(failure);
+        }
+    }
+
+    return this;
+};
+
+})();
+
 </script>
 <script src="ace/ace.js"></script>
 <script>
@@ -281,6 +388,14 @@ document.addEventListener("keydown", function (event) {
             resetEvaluator();
             output.session.setValue("");
             executeProgram(); break;
+
+        case "F7": event.preventDefault();
+            input.insert(`.examples(
+    [], 0,
+    [], 0,
+    [], 0,
+);
+`); break;
 
         case "F8": event.preventDefault();
             selectNextTheme(); break;
