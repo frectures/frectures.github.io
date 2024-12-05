@@ -250,9 +250,22 @@ function formatObject(obj) {
     }
 }
 
+const functionInputs = (function immediatelyInvoked() {
+    const map = new WeakMap();
+
+    return function (key) {
+        let value = map.get(key);
+        if (value === undefined) {
+            value = new Set();
+            map.set(key, value);
+        }
+        return value;
+    };
+})();
+
 return function examples(...examples) {
 
-    const inputs   = new Set();
+    const inputs   = functionInputs(this);
     let   status   = "";
     const failures = [];
     let   input;
