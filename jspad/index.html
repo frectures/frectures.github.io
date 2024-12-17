@@ -56,6 +56,9 @@ function formatValue(value, indentation = "", key) {
                 return formatObject(value, indentation);
             }
 
+        case "bigint":
+            return `${value}n`;
+
         default:
             return `${value}`;
     }
@@ -226,6 +229,9 @@ function formatValue(value) {
             } else {
                 return formatObject(value);
             }
+
+        case "bigint":
+            return `${value}n`;
 
         default:
             return `${value}`;
