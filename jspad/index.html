@@ -266,7 +266,7 @@ function formatObject(obj) {
     }
 }
 
-const functionInputs = (function immediatelyInvoked() {
+const argsHistory = (function immediatelyInvoked() {
     const map = new WeakMap();
 
     return function (key) {
@@ -281,42 +281,48 @@ const functionInputs = (function immediatelyInvoked() {
 
 return function examples(...examples) {
 
-    const inputs   = functionInputs(this);
+    const history  = argsHistory(this);
     let   status   = "";
     const failures = [];
-    let   input;
+    let   args;
     let   expected;
 
     function fail(failure) {
         status += "❌️";
-        failures.push(`   input: ${input}\nexpected: ${expected}${failure}`);
+        failures.push(`arguments: ${args}\n expected: ${expected}${failure}`);
     }
 
     try {
-        for (let i = 0; i < examples.length; i += 2) {
+        for (const example of examples) {
 
-            input    = formatValue(examples[i]);
-            expected = formatValue(examples[i + 1]);
+            args     = formatValue(example.arguments);
+            expected = formatValue(example.return);
 
-            if (!Array.isArray(examples[i])) {
-                fail(`\n   error: input must be array but is ${typeof examples[i]}\n     fix: [${input}], ${expected},\n`);
+            if (typeof2(example) !== "object") {
+                fail(`\n    error: example is ${typeof2(example)}, must be object\n`);
             }
-            else if (inputs.has(input)) {
-                fail(`\n   error: duplicate input\n     fix: remove or change ${input}, ${expected},\n`);
+            else if (!("arguments" in example)) {
+                fail(`\n    error: missing arguments property\n`);
+            }
+            else if (!("return" in example)) {
+                fail(`\n    error: missing return property\n`);
+            }
+            else if (typeof2(example.arguments) !== "array") {
+                fail(`\n    error: arguments is ${typeof2(example.arguments)}, must be array\n`);
+            }
+            else if (history.has(args)) {
+                fail(`\n    error: duplicate arguments ${args}\n`);
             }
             else {
-                inputs.add(input);
+                history.add(args);
 
-                const actual = formatValue(this.apply(null, examples[i]));
+                const actual = formatValue(this.apply(example.this ?? null, example.arguments));
 
-                if (i + 1 === examples.length) {
-                    fail(`\n   error: missing expected output\n     fix: ${input}, ${actual},\n`);
-                }
-                else if (expected === actual) {
+                if (expected === actual) {
                     status += "✔️";
                 }
                 else {
-                    fail(`\n  actual: ${actual}\n`);
+                    fail(`\n   actual: ${actual}\n`);
                 }
             }
         }
@@ -423,9 +429,9 @@ document.addEventListener("keydown", function (event) {
 
         case "F7": event.preventDefault();
             input.insert(`.examples(
-    [], 0,
-    [], 0,
-    [], 0,
+    { arguments: [], return: 0 },
+    { arguments: [], return: 0 },
+    { arguments: [], return: 0 },
 );
 `); break;
 
