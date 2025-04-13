@@ -15,6 +15,22 @@
 <script type="text/js-worker">
 "use strict";
 
+const typeof2 = function (value) {
+    const type1 = typeof value;
+    if (type1 === "object") {
+        if (value === null) {
+            return "null";
+        }
+        //  Array.isArray(   new Array()  ) === true
+        //  Array.isArray( Array.prototype) === true  (WTF)
+        //  Array.isArray(Object.prototype) === false
+        if (Array.isArray(Object.getPrototypeOf(value))) {
+            return "array";
+        }
+    }
+    return type1;
+}
+
 const log = (function immediatelyInvoked() {
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
@@ -23,13 +39,13 @@ const indirectEval = eval;
 onmessage = function ({ data: { echo, program } }) {
     postMessage(echo);
     const result = indirectEval(program);
-    postMessage(`${formatValue(result)}: ${typeof result}${classifyObject(result)} \uD83C\uDFC1\n`);
+    postMessage(`${formatValue(result)}: ${typeof2(result)}${classifyObject(result)} \uD83C\uDFC1\n`);
 };
 
 const pending = new Set(); // for preventing infinite recursion in circular structures
 
 function formatValue(value, indentation = "", key) {
-    switch (typeof value) {
+    switch (typeof2(value)) {
         case "string":
             return JSON.stringify(value); // convert string value to string literal
 
@@ -39,13 +55,12 @@ function formatValue(value, indentation = "", key) {
         case "function":
             return formatFunction(value, indentation, key);
 
+        case "array":
+            return pending.has(value) ? "∞" : formatArray(value, indentation);
+
         case "object":
-            if (value === null) {
-                return "null";
-            } else if (pending.has(value)) {
+            if (pending.has(value)) {
                 return "∞";
-            } else if (Array.isArray(value) && value !== Array.prototype) {
-                return formatArray(value, indentation);
             } else if (value instanceof Set) {
                 return formatSet(value, indentation);
             } else if (value instanceof Map) {
@@ -182,7 +197,7 @@ function formatSymbol(symbol) {
 }
 
 function classifyObject(value) {
-    if (typeof value === "object" && value !== null) {
+    if (typeof2(value) === "object") {
         const toStringTag = value[Symbol.toStringTag];
         if (typeof toStringTag === "string") {
             return ` ${toStringTag}`;
@@ -212,23 +227,18 @@ Function.prototype.examples = (function immediatelyInvoked() {
 const pending = new Set(); // for preventing infinite recursion in circular structures
 
 function formatValue(value) {
-    switch (typeof value) {
+    switch (typeof2(value)) {
         case "string":
             return JSON.stringify(value);
 
         case "function":
             return value.name || value.toString();
 
+        case "array":
+            return pending.has(value) ? "∞" : formatArray(value);
+
         case "object":
-            if (value === null) {
-                return "null";
-            } else if (pending.has(value)) {
-                return "∞";
-            } else if (Array.isArray(value)) {
-                return formatArray(value);
-            } else {
-                return formatObject(value);
-            }
+            return pending.has(value) ? "∞" : formatObject(value);
 
         case "bigint":
             return `${value}n`;
@@ -392,7 +402,11 @@ setTimeout(function () { throw "whoops" }, 1000);
     } else {
         // https://jshint.com/docs/options
         worker.call("changeOptions", [{
-            globals: { log: false }, // false = read-only
+            globals: {
+                // false = read-only
+                log: false,
+                typeof2: false,
+            },
             undef: true,
             unused: true,
             loopfunc: true,
