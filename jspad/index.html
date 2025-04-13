@@ -307,7 +307,7 @@ return function examples(...examples) {
             else {
                 inputs.add(input);
 
-                const actual = formatValue(this.apply(null, examples[i])); // may throw exception
+                const actual = formatValue(this.apply(null, examples[i]));
 
                 if (i + 1 === examples.length) {
                     fail(`\n   error: missing expected output\n     fix: ${input}, ${actual},\n`);
@@ -319,15 +319,14 @@ return function examples(...examples) {
                     fail(`\n  actual: ${actual}\n`);
                 }
             }
-            input = undefined;
         }
+        if (status === "") {
+            status = "no examples ⚠️";
+        }
+    } catch (error) {
+        fail("");
+        throw error;
     } finally {
-        if (input !== undefined) {
-            fail(""); // exception thrown by: this.apply(null, examples[i])
-        }
-        else if (status === "") {
-            status = "⚠️";
-        }
         log(`${status} ${this.name}\n`);
         for (const failure of failures) {
             log(failure);
