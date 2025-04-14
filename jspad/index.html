@@ -204,9 +204,8 @@ function classifyObject(value) {
         }
         let constructor = value.constructor;
         if (typeof constructor === "function") {
-            let name = constructor.name;
-            if (typeof name === "string") {
-                return ` new ${name}`;
+            if (constructor.prototype !== value) {
+                return ` new ${constructor.name}`;
             }
         }
     }
@@ -260,6 +259,12 @@ function formatArray(arr) {
 function formatObject(obj) {
     pending.add(obj);
     try {
+        let constructor = obj.constructor;
+        if (typeof constructor === "function") {
+            if (constructor.prototype === obj) {
+                return `${constructor.name}.prototype`;
+            }
+        }
         return `{${Object.keys(obj).sort().map(key => `${key}: ${formatValue(obj[key], key)}`).join(", ")}}`;
     } finally {
         pending.delete(obj);
