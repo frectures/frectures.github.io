@@ -137,7 +137,7 @@ function formatMap(map, indentation) {
         const separator = ",\n" + indentation;
         return `{${Array.from(map, ([key, value]) => {
             const k = formatValue(key);
-            return `${k} => ${formatValue(value, indentation + " ".repeat(4 + k.length), key)}`;
+            return `${k} => ${formatValue(value, indentation + " ".repeat(4 + k.length), k)}`;
         }).join(separator)}}`;
     } finally {
         pending.delete(map);
@@ -171,7 +171,7 @@ function formatObject(obj, indentation, names = Object.getOwnPropertyNames(obj).
             const k = formatKey(key);
             const { value, get, set } = Object.getOwnPropertyDescriptor(obj, key);
             const v = (get && set) ? [get, set] : (get ?? set ?? value);
-            return `${k}: ${formatValue(v, indentation + " ".repeat(2 + k.length), key)}`;
+            return `${k}: ${formatValue(v, indentation + " ".repeat(2 + k.length), k)}`;
         }).join(separator)}}`;
     } finally {
         pending.delete(obj);
@@ -184,16 +184,12 @@ function formatKey(key) {
             return key;
 
         case "symbol":
-            return formatSymbol(key);
+            return "[" + formatSymbol(key) + "]";
     }
 }
 
 function formatSymbol(symbol) {
-    if (symbol.description.includes(".")) {
-        return symbol.description;
-    } else {
-        return symbol.toString();
-    }
+    return symbol.description;
 }
 
 function classifyObject(value) {
