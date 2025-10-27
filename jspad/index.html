@@ -170,8 +170,8 @@ function formatObject(obj, indentation, names = Object.getOwnPropertyNames(obj).
         return `{${keys.map(key => {
             const k = formatKey(key);
             const { value, get, set } = Object.getOwnPropertyDescriptor(obj, key);
-            const v = (get && set) ? [get, set] : (get ?? set ?? value);
-            return `${k}: ${formatValue(v, indentation + " ".repeat(2 + k.length), k)}`;
+            const v = (get && set) ? "get/set" : get ? "get" : set ? "set" : formatValue(value, indentation + " ".repeat(2 + k.length), k);
+            return `${k}: ${v}`;
         }).join(separator)}}`;
     } finally {
         pending.delete(obj);
