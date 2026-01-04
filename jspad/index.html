@@ -350,6 +350,13 @@ return function examples(...examples) {
 <script>
 "use strict";
 
+const MANUAL = `F4  change color scheme
+F5  execute whole program
+F8  execute section (separated by 2 empty lines)
+F9  execute section to current line
+F12 execute selection/current line
+`;
+
 // https://github.com/ajaxorg/ace/wiki/Configuring-Ace
 const options = {
     cursorStyle: "wide",          // disable blinking
@@ -365,7 +372,7 @@ const themes = [
     "ace/theme/solarized_dark",
 ];
 
-function selectNextTheme() {
+function changeColorTheme() {
     themes.push(themes.shift());
     input.setTheme(themes[0]);
     output.setTheme(themes[0]);
@@ -374,14 +381,7 @@ function selectNextTheme() {
 const output = ace.edit("output");
 output.setOptions({ readOnly: true, ...options });
 output.renderer.setShowGutter(false);
-output.session.setValue(`jspad
-powered by ace.c9.io
-
-F5  execute selection/whole program
-F8  cycle through themes
-F9  execute selection/lines to here
-F12 execute selection/current line
-`);
+output.session.setValue(MANUAL);
 
 function append(text) {
     const beforeAppend = output.session.getLength();
@@ -423,10 +423,13 @@ setTimeout(function () { throw "whoops" }, 1000);
 
 document.addEventListener("keydown", function (event) {
     switch (event.key) {
+        case "F4": event.preventDefault();
+            changeColorTheme(); break;
+
         case "F5": event.preventDefault(); // refresh
             resetEvaluator();
-            output.session.setValue("");
-            executeProgram(); break;
+            output.session.setValue(MANUAL);
+            executeWholeProgram(); break;
 
         case "F7": event.preventDefault();
             input.insert(`.examples(
@@ -437,12 +440,14 @@ document.addEventListener("keydown", function (event) {
 `); break;
 
         case "F8": event.preventDefault();
-            selectNextTheme(); break;
+            resetEvaluator();
+            output.session.setValue(MANUAL);
+            executeSection(); break;
 
         case "F9": event.preventDefault();
             resetEvaluator();
-            output.session.setValue("");
-            executeLinesToHere(); break;
+            output.session.setValue(MANUAL);
+            executeSection(true); break;
 
         case "F12": event.preventDefault(); // dev tools
             executeCurrentLine(); break;
@@ -478,32 +483,50 @@ function resetEvaluator() {
 
 resetEvaluator();
 
-function executeProgram() {
-    let program = input.session.getValue();
-    localStorage.setItem(LOCAL_STORAGE_KEY, program);
-
-    const range = input.selection.getRange();
-    if (!range.isEmpty()) {
-        program = isolateSelectedProgram(program, range).program;
-    }
-
-    evaluator.postMessage({ echo: "", program });
-}
-
-function executeLinesToHere() {
+function executeWholeProgram() {
     const program = input.session.getValue();
     localStorage.setItem(LOCAL_STORAGE_KEY, program);
 
-    const range = input.selection.getRange();
-    if (range.isEmpty()) {
-        // pretend all lines to here are selected
-        range.start.row = 0;
-        range.start.column = 0;
-        range.end.column = Number.MAX_VALUE;
-    }
-    const isolated = isolateSelectedProgram(program, range);
+    evaluator.postMessage({ echo: "\n", program });
+}
 
-    evaluator.postMessage({ echo: "", program: isolated.program });
+function executeSection(toCurrentLine) {
+    const program = input.session.getValue();
+    localStorage.setItem(LOCAL_STORAGE_KEY, program);
+
+    const doc = input.session.doc;
+    const row = input.selection.cursor.row;
+
+    let start = row;
+    while (start > 0 && (doc.getLine(start - 1) !== "" || doc.getLine(start - 2) !== "")) {
+        --start;
+    }
+
+    let end = row;
+    if (!toCurrentLine) {
+        const lastRow = doc.getLength() - 1;
+        while (end < lastRow && (doc.getLine(end + 1) !== "" || doc.getLine(end + 2) !== "")) {
+            ++end;
+        }
+    }
+
+    const range = input.selection.getRange();
+    range.start.row = start;
+    range.start.column = 0;
+    range.end.row = end;
+    range.end.column = Number.MAX_VALUE;
+
+    const isolated = isolateProgramRange(program, range);
+
+    let echo = "";
+    switch (end - start + 1) {
+        case  1: echo = `\n${doc.getLine(start)}\n\n`; break;
+        case  2: echo = `\n${doc.getLine(start)}\n${doc.getLine(end)}\n\n`; break;
+        case  3: echo = `\n${doc.getLine(start)}\n${doc.getLine(start + 1)}\n${doc.getLine(end)}\n\n`; break;
+        default: echo = `\n${doc.getLine(start)}\n…\n${doc.getLine(end)}\n\n`; break;
+    }
+
+    evaluator.postMessage({ echo, program: isolated.program });
 }
 
 function executeCurrentLine() {
@@ -516,14 +539,14 @@ function executeCurrentLine() {
         range.start.column = 0;
         range.end.column = Number.MAX_VALUE;
     }
-    const isolated = isolateSelectedProgram(program, range);
+    const isolated = isolateProgramRange(program, range);
 
     evaluator.postMessage({ echo: `\n${isolated.selected}\n`, program: isolated.program });
 }
 
 // replace leading text with whitespace for sensible error positions
 // but preserve "use strict", even when "use strict" is not selected
-function isolateSelectedProgram(program, range) {
+function isolateProgramRange(program, range) {
     const selected = input.session.getTextRange(range);
     const before   = new range.constructor(0, 0, range.start.row, range.start.column);
     const leading  = input.session.getTextRange(before);
