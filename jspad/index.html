@@ -289,7 +289,7 @@ return function examples(...examples) {
     let   expected;
 
     function fail(failure) {
-        status += "❌️";
+        status += "✗";
         failures.push(`arguments: ${args}\n expected: ${expected}${failure}`);
     }
 
@@ -320,7 +320,7 @@ return function examples(...examples) {
                 const actual = formatValue(this.apply(example.this ?? null, example.arguments));
 
                 if (expected === actual) {
-                    status += "✔️";
+                    status += "✓";
                 }
                 else {
                     fail(`\n   actual: ${actual}\n`);
