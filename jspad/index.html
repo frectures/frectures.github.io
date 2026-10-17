@@ -351,10 +351,14 @@ return function examples(...examples) {
 "use strict";
 
 const MANUAL = `F4  change color scheme
-F5  execute whole program
-F8  execute section (separated by 2 empty lines)
+F5  execute program
+F6  execute program to current line
+F8  execute section  †
 F9  execute section to current line
 F12 execute selection/current line
+
+†  sections are separated by 2 empty lines
+†  first section is always executed
 `;
 
 // https://github.com/ajaxorg/ace/wiki/Configuring-Ace
@@ -429,7 +433,12 @@ document.addEventListener("keydown", function (event) {
         case "F5": event.preventDefault(); // refresh
             resetEvaluator();
             output.session.setValue(MANUAL);
-            executeWholeProgram(); break;
+            executeProgram(); break;
+
+        case "F6": event.preventDefault();
+            resetEvaluator();
+            output.session.setValue(MANUAL);
+            executeProgramToCurrentLine(); break;
 
         case "F7": event.preventDefault();
             input.insert(`.examples(
@@ -483,11 +492,24 @@ function resetEvaluator() {
 
 resetEvaluator();
 
-function executeWholeProgram() {
+function executeProgram() {
     const program = input.session.getValue();
     localStorage.setItem(LOCAL_STORAGE_KEY, program);
 
     evaluator.postMessage({ echo: "\n", program });
+}
+
+function executeProgramToCurrentLine() {
+    const program = input.session.getValue();
+    localStorage.setItem(LOCAL_STORAGE_KEY, program);
+
+    const range = input.selection.getRange();
+    range.start.row = 0;
+    range.start.column = 0;
+    range.end.row = input.selection.cursor.row;
+    range.end.column = Number.MAX_VALUE;
+
+    evaluator.postMessage({ echo: "\n", program: input.session.getTextRange(range) });
 }
 
 function executeSection(toCurrentLine) {
@@ -510,14 +532,6 @@ function executeSection(toCurrentLine) {
         }
     }
 
-    const range = input.selection.getRange();
-    range.start.row = start;
-    range.start.column = 0;
-    range.end.row = end;
-    range.end.column = Number.MAX_VALUE;
-
-    const isolated = isolateProgramRange(program, range);
-
     let echo = "";
     switch (end - start + 1) {
         case  1: echo = `\n${doc.getLine(start)}\n\n`; break;
@@ -526,7 +540,21 @@ function executeSection(toCurrentLine) {
         default: echo = `\n${doc.getLine(start)}\n…\n${doc.getLine(end)}\n\n`; break;
     }
 
-    evaluator.postMessage({ echo, program: isolated.program });
+    const range = input.selection.getRange();
+    range.start.row = start;
+    range.start.column = 0;
+    range.end.row = end;
+    range.end.column = Number.MAX_VALUE;
+
+    // replace leading text with whitespace for sensible error positions
+    // but preserve first section
+    const selected = input.session.getTextRange(range);
+    const before   = new range.constructor(0, 0, range.start.row, range.start.column);
+    const leading  = input.session.getTextRange(before);
+
+    const [_, first, ignore] = /((?:(?!\n\n).)*)(.*)/gs.exec(leading);
+
+    evaluator.postMessage({ echo, program: `${first}${ignore.replace(/./g, " ")}${selected}` });
 }
 
 function executeCurrentLine() {
@@ -539,21 +567,13 @@ function executeCurrentLine() {
         range.start.column = 0;
         range.end.column = Number.MAX_VALUE;
     }
-    const isolated = isolateProgramRange(program, range);
 
-    evaluator.postMessage({ echo: `\n${isolated.selected}\n`, program: isolated.program });
-}
-
-// replace leading text with whitespace for sensible error positions
-// but preserve "use strict", even when "use strict" is not selected
-function isolateProgramRange(program, range) {
+    // replace leading text with whitespace for sensible error positions
     const selected = input.session.getTextRange(range);
     const before   = new range.constructor(0, 0, range.start.row, range.start.column);
     const leading  = input.session.getTextRange(before);
 
-    const [_, use, ignore] = /("use strict";|'use strict';)?(.*)/gs.exec(leading);
-
-    return { program: `${use || ""}${ignore.replace(/./g, " ")}${selected}`, selected };
+    evaluator.postMessage({ echo: `\n${selected}\n`, program: `${leading.replace(/./g, " ")}${selected}` });
 }
 
 </script>
